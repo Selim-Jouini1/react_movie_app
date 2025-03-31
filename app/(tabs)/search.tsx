@@ -8,6 +8,7 @@ import MovieCard from '@/components/MovieCard'
 import { icons } from '@/constants/icons'
 import SearchBar from '@/components/SearchBar'
 import { useState, useEffect } from 'react'  
+import { updateSearchCount } from '@/services/appwrite'
 
 const search = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,18 +22,27 @@ const search = () => {
   } = useFetch(() => fetchMovies({ 
     query: searchQuery }), false)
 
-  useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      if (searchQuery) {
-        await loadMovies();
-      } else {
-        reset();
+    useEffect(() => {
+      const timeoutId = setTimeout(async () => {
+        if (searchQuery.trim()) {
+          await loadMovies();
+        } else {
+          //console.log('updateSearchCount not Launched');
+          //console.log(movies?.results);
+          reset();
+        }
+      }, 500);
+    
+      return () => clearTimeout(timeoutId); 
+    }, [searchQuery]); 
+    
+    useEffect(() => {
+      if (movies?.results?.length > 0) {
+        updateSearchCount(searchQuery, movies.results[0]);
+        //console.log('updateSearchCount Launched', searchQuery, movies.results[0]);
       }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
- 
+    }, [movies]); 
+    
   return (
     <View className='flex-1 bg-primary'>
         <Image source={images.bg} className="flex-1 absolute z-0 w-full" resizeMode='cover' />

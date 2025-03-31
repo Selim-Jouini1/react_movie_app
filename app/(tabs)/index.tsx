@@ -6,9 +6,19 @@ import { useRouter } from "expo-router";
 import useFetch from "@/services/useFetch";
 import { fetchMovies } from "@/services/api";
 import MovieCard from "@/components/MovieCard";
+import { getTrendingMovies } from "@/services/appwrite";
+import TrendingCard from "@/components/TrendingCard";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function Index() {
   const router = useRouter();
+
+  const {
+    data: trendingMovies, 
+    loading:trendingMoviesLoading, 
+    error:trendingMoviesError
+  }= useFetch(getTrendingMovies)
+
 
   const {
     data: movies, 
@@ -17,7 +27,10 @@ export default function Index() {
   } = useFetch(() => fetchMovies({ 
     query: '' }))
 
+  //console.log(movies)
+
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <View className="flex-1 bg-primary">
 
       <Image source={images.bg} className="w-full absolute z-0" />
@@ -25,24 +38,44 @@ export default function Index() {
       <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10, minHeight: "100%" }}>
         <Image source={icons.logo} className="w-12 h-10 mt-20 mb-5 mx-auto" />
 
-        {moviesLoading ? (
+        {moviesLoading || trendingMoviesLoading ? (
           <ActivityIndicator 
             size="large"
             color="#0000ff"
             className="mt-10 self-center"
           />
-        ): moviesError ? (
-          <Text className="text-white text-center mt-10"> Error: {moviesError?.message}</Text>
+        ): moviesError || trendingMoviesError ? (
+          <Text className="text-white text-center mt-10"> Error: {moviesError?.message || trendingMoviesError?.message}</Text>
         ): 
           <View className="flex-1 mt-5" >
           <SearchBar 
             onPress={() => {router.push("/search")}}
             placeholder='Search for a movie'
           />
-          <>
-          <Text className="text-lg text-white mt-5 mb-3 font-bold">Latest Movies</Text>
 
+          {trendingMovies && (
+            <View className="mt-10">
+                <Text className="text-lg text-white font-bold mb-3">
+                    Trending Movies
+                </Text>
+            </View>
+          )}
+          <>
+          <FlatList 
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View className="w-4" />}
+            keyExtractor={(item) => item.movie_id.toString()}
+            data={trendingMovies}
+            renderItem={({ item, index}) => (
+              <TrendingCard movie = {item} index={index}/>
+              )
+            }
+
+          />
+          <Text className="text-lg text-white mt-5 mb-3 font-bold">Latest Movies</Text>
           <FlatList
+            key={movies?.results?.length > 0 ? 'grid' : 'list'} // Force re-render when data changes
             data={movies?.results || []}
             keyExtractor={(item) => item.id.toString()}
             numColumns={3}
@@ -71,5 +104,6 @@ export default function Index() {
       </ScrollView>
 
     </View>
+    </GestureHandlerRootView>
   );
 }
